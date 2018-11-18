@@ -1,21 +1,10 @@
 
-
-
-# This script includes a set of functions used to calculate annual
-# hydrologic variables from monthly temperature and precipitation data.
-
-# References:
-#     Wang et al 2012 -- ClimateWNA -- Journal of Applied Meteorology and Climatology
-#     Shuttleworth 1993 -- Evaporation (chapter 4 in Handbook of Hydrology)
-#     Hargreaves and Samani 1985 -- Reference Crop Evaporation from Ambient Air Temperature
-
-# Matthew Kling, June 2018
-
-
-
-# Extraterrestrial solar radiation, per Shuttleworth 1993
-ETSR <- function(psi, # latitude, in degrees
-                 J){ # julian day
+#' Extraterrestrial solar radiation, per Shuttleworth 1993
+#'
+#' @param psi Latitude, in degrees
+#' @param J Julian day
+#' @return Solar radiation in mm/day
+ETSR <- function(psi, J){
 
       # Shuttleworth's test:
       # the following should output c(15.0, 15.1, 11.2)
@@ -40,7 +29,12 @@ ETSR <- function(psi, # latitude, in degrees
 }
 
 
-# mean S0 for a month of the year
+
+#' Mean S0 for a month of the year
+#'
+#' @param month integer from 1 to 12
+#' @param latitude decimal degrees
+#' @return mean S0 for a month of the year
 monthly_S0 <- function(month, latitude){
 
       # julian days for target month
@@ -65,18 +59,30 @@ monthly_S0 <- function(month, latitude){
 }
 
 
-# Hargreaves equation for evapotranspiration, per Hargreaves & Samani 1985
-# (Shuttleworth 1993 seems to incorrectly omit the exponent)
+#' Hargreaves equation for evapotranspiration
+#'
+#' Per Hargreaves & Samani 1985. (Shuttleworth 1993 seems to incorrectly omit the exponent)
+#'
+#' @param S0 numeric
+#' @param tmean degrees C
+#' @param tmin degrees C
+#' @param tmean degrees C
+#' @return evapotranspiration (ETP) in mm/day
 hargreaves <- function(S0, tmean, tmin, tmax){
-
-      #ETP, in mm/day
       0.0023 * S0 * (tmax - tmin)^.5 * (tmean + 17.8)
 }
 
 
-# calculate monthly and annual water balance variables for one site
-hydro <- function(latitude, # integer
-                  ppt, tmean, tmax, tmin){ # vectors of length 12
+
+#' Annual water balance variables for one site
+#'
+#' @param latitude degrees
+#' @param ppt vector of length 12, mm
+#' @param tmean vector of length 12, degrees C
+#' @param tmin vector of length 12, degrees C
+#' @param tmean vector of length 12, degrees C
+#' @return A named vector of hydrologic variables: PPT, PET, AET, CWD, RAR
+water_balance <- function(latitude, ppt, tmean, tmax, tmin){
 
       if(is.na(tmean[1])) return(rep(NA, 5))
 
@@ -100,9 +106,13 @@ hydro <- function(latitude, # integer
 
 
 
-# generate a raster layer with call values representing degrees latitude
-latitude <- function(template, # file path to a raster layer
-                     already_latlong=FALSE){ # leave as F unless rasters are already in lat-long projection
+
+#' Create a latitude raster
+#'
+#' @param template a raster layer, or file path to one
+#' @param already_latlong leave as F unless rasters are already in lat-long projection
+#' @return A raster layer with values representing degrees latitude
+latitude <- function(template, already_latlong=FALSE){
 
       lat <- raster(template)
       lat <- lat * 1 # force into RAM
@@ -120,24 +130,46 @@ latitude <- function(template, # file path to a raster layer
       return(lat)
 }
 
-# calculate annual water balance variables for a raster stack
-water_balance <- function(rasters, # stack of 48 rasters in this order: ppt1-12, tmean1-12, tmax1-12, tmin1-12
-                          temp_scalar=1, # multiplier to convert input temperatures to deg C
-                          ppt_scalar=1, # multiplier to convert input precipitation to mm
-                          ncores=1, # number of computing cores to use for parallel processing
-                          already_latlong=F){ # leave as F unless rasters are already in lat-long projection
+
+#' Derive annual hydrologic variables
+#'
+#' This is the main external function in the package, which uses the Hargreaves
+#' equation to generate a set of 5 annual water balance variables from a 48
+#' monthly temperature and precipitation variables. The function calculates
+#' cumulative annual totals for precipitation (PPT), potential
+#' evapotranspiration (PET), actual evapotranspiration (AET), climatic water
+#' deficit (CWD), and reacharge and runoff (RAR). Note that it does not work
+#' inside the arctic and antarctic circles.
+#'
+#' @param rasters stack of 48 rasters in this order: ppt1-12, tmean1-12,
+#'   tmax1-12, tmin1-12
+#' @param temp_scalar multiplier to convert input temperatures to deg C
+#' @param ppt_scalar multiplier to convert input precipitation to mm
+#' @param ncores number of computing cores to use for parallel processing
+#' @param already_latlong leave as F unless rasters are already in lat-long
+#'   projection
+#' @return A raster stack with 5 layers: PPT, PET, AET, CWD, RAR
+#' @references Wang et al 2012 -- ClimateWNA -- Journal of Applied Meteorology
+#'   and Climatology. Shuttleworth 1993 -- Evaporation (chapter 4 in Handbook of
+#'   Hydrology). Hargreaves and Samani 1985 -- Reference Crop Evaporation from
+#'   Ambient Air Temperature
+hydro <- function(rasters, #
+                          temp_scalar=1, #
+                          ppt_scalar=1, #
+                          ncores=1, #
+                          already_latlong=F){ #
 
       # latitude raster
       lat <- latitude(rasters[[1]], already_latlong=already_latlong)
       rasters <- stack(rasters, lat)
 
       # compute annual water balance variables
-      w <- function(x, ...) hydro(latitude=x[49],
+      w <- function(x, ...) water_balance(latitude=x[49],
                                   ppt=x[1:12],
                                   tmean=x[13:24],
                                   tmax=x[25:36],
                                   tmin=x[37:48])
-      if(temp_scalar != 1 | ppt_scalar != 1) w <- function(x, ...) hydro(latitude=x[49],
+      if(temp_scalar != 1 | ppt_scalar != 1) w <- function(x, ...) water_balance(latitude=x[49],
                                                                          ppt=x[1:12] * ppt_scalar,
                                                                          tmean=x[13:24] * temp_scalar,
                                                                          tmax=x[25:36] * temp_scalar,
@@ -145,7 +177,7 @@ water_balance <- function(rasters, # stack of 48 rasters in this order: ppt1-12,
 
       beginCluster(ncores, type="SOCK")
       wb <- clusterR(rasters, calc, args=list(fun=w),
-                     export=c("ETSR", "hargreaves", "hydro", "monthly_S0"))
+                     export=c("ETSR", "hargreaves", "water_balance", "monthly_S0"))
       endCluster()
 
       names(wb) <- c("PPT", "PET", "AET", "CWD", "RAR")
