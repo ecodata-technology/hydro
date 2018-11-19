@@ -7,7 +7,7 @@
 latitude(template, already_latlong = FALSE)
 }
 \arguments{
-\item{template}{a raster layer, or file path to one}
+\item{template}{a raster layer}
 
 \item{already_latlong}{leave as F unless rasters are already in lat-long projection}
 }

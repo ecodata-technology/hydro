@@ -29,8 +29,8 @@ equation to generate a set of 5 annual water balance variables from a 48
 monthly temperature and precipitation variables. The function calculates
 cumulative annual totals for precipitation (PPT), potential
 evapotranspiration (PET), actual evapotranspiration (AET), climatic water
-deficit (CWD), and reacharge and runoff (RAR). Note that it does not work
-inside the arctic and antarctic circles.
+deficit (CWD), and reacharge and runoff (RAR), all in mm. Note that it does
+not work inside the arctic and antarctic circles.
 }
 \references{
 Wang et al 2012 -- ClimateWNA -- Journal of Applied Meteorology

@@ -109,13 +109,12 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin){
 
 #' Create a latitude raster
 #'
-#' @param template a raster layer, or file path to one
+#' @param template a raster layer
 #' @param already_latlong leave as F unless rasters are already in lat-long projection
 #' @return A raster layer with values representing degrees latitude
 latitude <- function(template, already_latlong=FALSE){
 
-      lat <- raster(template)
-      lat <- lat * 1 # force into RAM
+      lat <- template * 1 # force into RAM
       coords <- coordinates(lat)
 
       if(!already_latlong){
@@ -138,8 +137,8 @@ latitude <- function(template, already_latlong=FALSE){
 #' monthly temperature and precipitation variables. The function calculates
 #' cumulative annual totals for precipitation (PPT), potential
 #' evapotranspiration (PET), actual evapotranspiration (AET), climatic water
-#' deficit (CWD), and reacharge and runoff (RAR). Note that it does not work
-#' inside the arctic and antarctic circles.
+#' deficit (CWD), and reacharge and runoff (RAR), all in mm. Note that it does
+#' not work inside the arctic and antarctic circles.
 #'
 #' @param rasters stack of 48 rasters in this order: ppt1-12, tmean1-12,
 #'   tmax1-12, tmin1-12
@@ -153,11 +152,9 @@ latitude <- function(template, already_latlong=FALSE){
 #'   and Climatology. Shuttleworth 1993 -- Evaporation (chapter 4 in Handbook of
 #'   Hydrology). Hargreaves and Samani 1985 -- Reference Crop Evaporation from
 #'   Ambient Air Temperature
-hydro <- function(rasters, #
-                          temp_scalar=1, #
-                          ppt_scalar=1, #
-                          ncores=1, #
-                          already_latlong=F){ #
+hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlong=F){
+
+      require(raster)
 
       # latitude raster
       lat <- latitude(rasters[[1]], already_latlong=already_latlong)
