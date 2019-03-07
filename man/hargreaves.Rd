@@ -13,7 +13,7 @@ hargreaves(S0, tmean, tmin, tmax)
 
 \item{tmin}{degrees C}
 
-\item{tmean}{degrees C}
+\item{tmax}{degrees C}
 }
 \value{
 evapotranspiration (ETP) in mm/day

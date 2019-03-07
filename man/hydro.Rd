@@ -5,7 +5,7 @@
 \title{Derive annual hydrologic variables}
 \usage{
 hydro(rasters, temp_scalar = 1, ppt_scalar = 1, ncores = 1,
-  already_latlong = F)
+  already_latlong = F, ...)
 }
 \arguments{
 \item{rasters}{stack of 48 rasters in this order: ppt1-12, tmean1-12,
@@ -19,6 +19,8 @@ tmax1-12, tmin1-12}
 
 \item{already_latlong}{leave as F unless rasters are already in lat-long
 projection}
+
+\item{...}{additional arguments to clusterR or writeRaster}
 }
 \value{
 A raster stack with 5 layers: PPT, PET, AET, CWD, RAR

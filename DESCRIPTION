@@ -1,12 +1,14 @@
 Package: hydro
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Compute Water Balance Variables
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: person("Matthew", "Kling", email = "mattkling@gmail.com", role = c("cre"))
+Description: This package includes functions to help compute annual water 
+    balance variables from monthly temperature and precipitation data.
+License: CC0
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
+Imports:
+    raster,
+    sp

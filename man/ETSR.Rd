@@ -7,12 +7,12 @@
 ETSR(psi, J)
 }
 \arguments{
-\item{psi}{Latitude, in degrees}
+\item{psi}{latitude, in degrees}
 
 \item{J}{Julian day}
 }
 \value{
-Solar radiation in mm/day
+solar radiation in mm/day
 }
 \description{
 Extraterrestrial solar radiation, per Shuttleworth 1993

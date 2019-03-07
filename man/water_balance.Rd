@@ -13,9 +13,9 @@ water_balance(latitude, ppt, tmean, tmax, tmin)
 
 \item{tmean}{vector of length 12, degrees C}
 
-\item{tmin}{vector of length 12, degrees C}
+\item{tmax}{vector of length 12, degrees C}
 
-\item{tmean}{vector of length 12, degrees C}
+\item{tmin}{vector of length 12, degrees C}
 }
 \value{
 A named vector of hydrologic variables: PPT, PET, AET, CWD, RAR
