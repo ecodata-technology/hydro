@@ -4,8 +4,14 @@
 \alias{hydro}
 \title{Derive annual hydrologic variables}
 \usage{
-hydro(rasters, temp_scalar = 1, ppt_scalar = 1, ncores = 1,
-  already_latlong = F, ...)
+hydro(
+  rasters,
+  temp_scalar = 1,
+  ppt_scalar = 1,
+  ncores = 1,
+  already_latlong = F,
+  ...
+)
 }
 \arguments{
 \item{rasters}{stack of 48 rasters in this order: ppt1-12, tmean1-12,

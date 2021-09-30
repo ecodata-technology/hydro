@@ -1,5 +1,6 @@
 
 #' Extraterrestrial solar radiation, per Shuttleworth 1993
+#' @export
 #'
 #' @param psi latitude, in degrees
 #' @param J Julian day
@@ -31,6 +32,7 @@ ETSR <- function(psi, J){
 
 
 #' Mean S0 for a month of the year
+#' @export
 #'
 #' @param month integer from 1 to 12
 #' @param latitude decimal degrees
@@ -49,6 +51,7 @@ monthly_S0 <- function(month, latitude){
 #' Hargreaves equation for evapotranspiration
 #'
 #' Per Hargreaves & Samani 1985. (Shuttleworth 1993 seems to incorrectly omit the exponent)
+#' @export
 #'
 #' @param S0 numeric
 #' @param tmean degrees C
@@ -62,6 +65,7 @@ hargreaves <- function(S0, tmean, tmin, tmax){
 
 
 #' Annual water balance variables for one site
+#' @export
 #'
 #' @param latitude degrees
 #' @param ppt vector of length 12, mm
@@ -95,6 +99,7 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin){
 
 
 #' Create a latitude raster
+#' @export
 #'
 #' @param template a raster layer
 #' @param already_latlong leave as F unless rasters are already in lat-long projection
@@ -129,6 +134,7 @@ latitude <- function(template, already_latlong=FALSE){
 #' evapotranspiration (PET), actual evapotranspiration (AET), climatic water
 #' deficit (CWD), and reacharge and runoff (RAR), all in mm. Note that it does
 #' not work inside the arctic and antarctic circles.
+#' @export
 #'
 #' @param rasters stack of 48 rasters in this order: ppt1-12, tmean1-12,
 #'   tmax1-12, tmin1-12
