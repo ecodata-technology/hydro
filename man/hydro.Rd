@@ -10,6 +10,7 @@ hydro(
   ppt_scalar = 1,
   ncores = 1,
   already_latlong = F,
+  annual = T,
   ...
 )
 }
@@ -25,6 +26,8 @@ tmax1-12, tmin1-12}
 
 \item{already_latlong}{leave as F unless rasters are already in lat-long
 projection}
+
+\item{annual}{should annual sums be returned? (default TRUE; if FALSE monthly values for each of the 5 variables will be returned)}
 
 \item{...}{additional arguments to clusterR or writeRaster}
 }

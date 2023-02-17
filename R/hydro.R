@@ -72,10 +72,12 @@ hargreaves <- function(S0, tmean, tmin, tmax){
 #' @param tmean vector of length 12, degrees C
 #' @param tmax vector of length 12, degrees C
 #' @param tmin vector of length 12, degrees C
+#' @param annual should annual sums be returned? (default TRUE; if FALSE monthly values for each of the 5 variables will be returned)
 #' @return A named vector of hydrologic variables: PPT, PET, AET, CWD, RAR
-water_balance <- function(latitude, ppt, tmean, tmax, tmin){
+water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
 
-      if(is.na(tmean[1])) return(rep(NA, 5))
+      if(is.na(tmean[1]) & annual) return(rep(NA, 5))
+      if(is.na(tmean[1]) & !annual) return(rep(NA, 5*12))
 
       # [note: Wang et al 2012 page 21 use a latitude correction;
       # this note is a placeholder for that calculation if we decide to use it]
@@ -88,11 +90,14 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin){
             c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
       pet[tmean<0] <- 0 # per Wang et al 2012
       aet <- pmin(pet, ppt)
-      cmd <- pmax(0, pet - ppt)
-      rr <- pmax(0, ppt - pet)
+      cwd <- pmax(0, pet - ppt)
+      rar <- pmax(0, ppt - pet)
 
       # annual sums
-      return(c(PPT=sum(ppt), PET=sum(pet), AET=sum(aet), CWD=sum(cmd), RAR=sum(rr)))
+      if(annual) return(c(PPT=sum(ppt), PET=sum(pet), AET=sum(aet), CWD=sum(cwd), RAR=sum(rar)))
+      if(!annual) return(setNames(c(ppt, pet, aet, cwd, rar),
+                                  paste0(rep(c("PPE", "PET", "AET", "CWD", "RAR"), each = 12),
+                                         rep(1:12, 5))))
 }
 
 
@@ -143,13 +148,14 @@ latitude <- function(template, already_latlong=FALSE){
 #' @param ncores number of computing cores to use for parallel processing
 #' @param already_latlong leave as F unless rasters are already in lat-long
 #'   projection
+#' @param annual should annual sums be returned? (default TRUE; if FALSE monthly values for each of the 5 variables will be returned)
 #' @param ... additional arguments to clusterR or writeRaster
 #' @return A raster stack with 5 layers: PPT, PET, AET, CWD, RAR
 #' @references Wang et al 2012 -- ClimateWNA -- Journal of Applied Meteorology
 #'   and Climatology. Shuttleworth 1993 -- Evaporation (chapter 4 in Handbook of
 #'   Hydrology). Hargreaves and Samani 1985 -- Reference Crop Evaporation from
 #'   Ambient Air Temperature
-hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlong=F, ...){
+hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlong=F, annual=T, ...){
 
       requireNamespace("raster")
 
@@ -162,12 +168,14 @@ hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlon
                                   ppt=x[1:12],
                                   tmean=x[13:24],
                                   tmax=x[25:36],
-                                  tmin=x[37:48])
+                                  tmin=x[37:48],
+                                  annual = annual)
       if(temp_scalar != 1 | ppt_scalar != 1) w <- function(x, ...) water_balance(latitude=x[49],
                                                                          ppt=x[1:12] * ppt_scalar,
                                                                          tmean=x[13:24] * temp_scalar,
                                                                          tmax=x[25:36] * temp_scalar,
-                                                                         tmin=x[37:48] * temp_scalar)
+                                                                         tmin=x[37:48] * temp_scalar,
+                                                                         annual = annual)
 
       beginCluster(ncores, type="SOCK")
       wb <- clusterR(rasters, calc, args=list(fun=w),
@@ -175,7 +183,8 @@ hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlon
                      ...)
       endCluster()
 
-      names(wb) <- c("PPT", "PET", "AET", "CWD", "RAR")
+      if(annual) names(wb) <- c("PPT", "PET", "AET", "CWD", "RAR")
+      if(!annual) names(wb) <- paste0(rep(c("PPT", "PET", "AET", "CWD", "RAR"), each = 12), rep(1:12, 5))
       return(wb)
 }
 
