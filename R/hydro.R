@@ -83,17 +83,22 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
       # [note: Wang et al 2012 page 21 use a latitude correction;
       # this note is a placeholder for that calculation if we decide to use it]
 
+      logger::log_info("Starting water balance calculations.")
+      logger::log_info("If necessary, projecting latitude into WGS84.")
       # get S0 values for all 12 months
       S0 <- sapply(1:12, monthly_S0, latitude=latitude)
 
+      logger::log_info("Starting solar radiation.")
       # convert S0 from list of rasters to raster stack
       S0 <- rast(S0)
 
+      logger::log_info("Calculating potential evapotranspiration.")
       # monthly water balance variables
       pet <- hargreaves(S0, tmean, tmin, tmax) *
             c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
       pet[tmean<0] <- 0 # per Wang et al 2012
 
+      logger::log_info("From PET, calculating AET, CWD, and RAR.")
       aet <- min(pet, ppt)
       cwd <- pet - ppt
       cwd[cwd<0] <- 0
@@ -101,10 +106,15 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
       rar[rar<0] <- 0
 
       # annual sums
-      if(annual) return(c(PPT=sum(ppt), PET=sum(pet), AET=sum(aet), CWD=sum(cwd), RAR=sum(rar)))
-      if(!annual) return(setNames(c(ppt, pet, aet, cwd, rar),
+      if (annual) {
+            logger::log_info("Aggregating montly rasters to annual total")
+            return(c(PPT=sum(ppt), PET=sum(pet), AET=sum(aet), CWD=sum(cwd), RAR=sum(rar)))
+      } else if (!annual) {
+            logger::log_info("Returning monthly rasters.")
+            return(setNames(c(ppt, pet, aet, cwd, rar),
                                   paste0(rep(c("PPE", "PET", "AET", "CWD", "RAR"), each = 12),
                                          rep(1:12, 5))))
+      }
 }
 
 
