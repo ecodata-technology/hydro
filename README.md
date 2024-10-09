@@ -19,14 +19,16 @@ The main function, `water_balance`, uses 48 monthly climate variables (precipita
 The package also includes a function `hydro` that operates on a raster stack of the input variables, returning a stack of the hydrological variables described above. Here's an example:
 
 ```
-library(hydro)
-library(raster)
+library(terra)
 library(tidyverse)
+library(geodata)
 
 # download monthly wordlclim data 
-monthly <- c("prec", "tmean", "tmax", "tmin") %>%
-      map(function(x) getData("worldclim", var = x, res = 10)) %>% 
-      stack() %>%
+c("prec", "tavg", "tmax", "tmin") %>%
+      map(function(x) geodata::worldclim_global(var = x, res = 10, path='./data/'))
+
+monthly <- list.files("./data/climate/wc2.1_10m", full.names = T, pattern='.tif') %>%
+      terra::rast() %>%
       crop(extent(-125, -70, 20, 60)) 
       
 # generate annual water balance variables 
