@@ -76,8 +76,9 @@ hargreaves <- function(S0, tmean, tmin, tmax){
 #' @return A named vector of hydrologic variables: PPT, PET, AET, CWD, RAR
 water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
 
-      if(is.na(tmean[1]) & annual) return(rep(NA, 5))
-      if(is.na(tmean[1]) & !annual) return(rep(NA, 5*12))
+      # unclear what this section does and it causes an error with terra
+      # if(is.na(tmean[1]) & annual) return(rep(NA, 5))
+      # if(is.na(tmean[1]) & !annual) return(rep(NA, 5*12))
 
       # [note: Wang et al 2012 page 21 use a latitude correction;
       # this note is a placeholder for that calculation if we decide to use it]
@@ -85,13 +86,19 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
       # get S0 values for all 12 months
       S0 <- sapply(1:12, monthly_S0, latitude=latitude)
 
+      # convert S0 from list of rasters to raster stack
+      S0 <- rast(S0)
+
       # monthly water balance variables
       pet <- hargreaves(S0, tmean, tmin, tmax) *
             c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
       pet[tmean<0] <- 0 # per Wang et al 2012
-      aet <- pmin(pet, ppt)
-      cwd <- pmax(0, pet - ppt)
-      rar <- pmax(0, ppt - pet)
+
+      aet <- min(pet, ppt)
+      cwd <- pet - ppt
+      cwd[cwd<0] <- 0
+      rar <- ppt - pet
+      rar[rar<0] <- 0
 
       # annual sums
       if(annual) return(c(PPT=sum(ppt), PET=sum(pet), AET=sum(aet), CWD=sum(cwd), RAR=sum(rar)))
@@ -111,21 +118,25 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
 #' @return A raster layer with values representing degrees latitude
 latitude <- function(template, already_latlong=FALSE){
 
-      requireNamespace("raster")
-      requireNamespace("sp")
+      requireNamespace("terra")
+      requireNamespace("sf")
 
-      lat <- template * 1 # force into RAM
-      coords <- coordinates(lat)
+      template <- template * 1 # force into RAM
 
-      if(!already_latlong){
-            coords <- as.data.frame(coords)
-            coordinates(coords) <- c("x", "y")
-            crs(coords) <- crs(lat)
-            coords <- spTransform(coords, crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-            coords <- coordinates(coords)
+      if(!already_latlong) {
+
+            # convert template to new CRS
+            template_wgs84 <- terra::project(template, "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+            # extract lat values into new raster
+            lat <- init(template_wgs84, 'y')
+            # set NA values to match template
+            lat <- mask(lat, mask=template_wgs84)
+            # set CRS back to original (so it matches other input rasters, lat values in the raster are unchanged)
+            lat <- terra::project(x=lat, y=template)
+      } else {
+            lat <- init(template, 'y')
       }
 
-      lat[] <- coords[,2]
       return(lat)
 }
 
@@ -157,31 +168,36 @@ latitude <- function(template, already_latlong=FALSE){
 #'   Ambient Air Temperature
 hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlong=F, annual=T, ...){
 
-      requireNamespace("raster")
+      requireNamespace("terra")
 
       # latitude raster
       lat <- latitude(rasters[[1]], already_latlong=already_latlong)
-      rasters <- stack(rasters, lat)
+      rasters <- c(rasters, lat)
 
       # compute annual water balance variables
-      w <- function(x, ...) water_balance(latitude=x[49],
-                                  ppt=x[1:12],
-                                  tmean=x[13:24],
-                                  tmax=x[25:36],
-                                  tmin=x[37:48],
+      w <- function(x, ...) water_balance(latitude=x[[49]],
+                                  ppt=x[[1:12]],
+                                  tmean=x[[13:24]],
+                                  tmax=x[[25:36]],
+                                  tmin=x[[37:48]],
                                   annual = annual)
-      if(temp_scalar != 1 | ppt_scalar != 1) w <- function(x, ...) water_balance(latitude=x[49],
-                                                                         ppt=x[1:12] * ppt_scalar,
-                                                                         tmean=x[13:24] * temp_scalar,
-                                                                         tmax=x[25:36] * temp_scalar,
-                                                                         tmin=x[37:48] * temp_scalar,
+      if(temp_scalar != 1 | ppt_scalar != 1) w <- function(x, ...) water_balance(latitude=x[[49]],
+                                                                         ppt=x[[1:12]] * ppt_scalar,
+                                                                         tmean=x[[13:24]] * temp_scalar,
+                                                                         tmax=x[[25:36]] * temp_scalar,
+                                                                         tmin=x[[37:48]] * temp_scalar,
                                                                          annual = annual)
+      # wrap in another terra::rast to return a multi-layer raster instead of list of rasters
+      # this matches output format of previous raster implementation
+      wb <- rast(w(rasters))
 
-      beginCluster(ncores, type="SOCK")
-      wb <- clusterR(rasters, calc, args=list(fun=w),
-                     export=c("ETSR", "hargreaves", "water_balance", "monthly_S0"),
-                     ...)
-      endCluster()
+       # remove parallelization (for now). In many cases, single-threaded terra is already faster than parallelized raster.
+#
+#       beginCluster(ncores, type="SOCK")
+#       wb <- clusterR(rasters, calc, args=list(fun=w),
+#                      export=c("ETSR", "hargreaves", "water_balance", "monthly_S0"),
+#                      ...)
+#       endCluster()
 
       if(annual) names(wb) <- c("PPT", "PET", "AET", "CWD", "RAR")
       if(!annual) names(wb) <- paste0(rep(c("PPT", "PET", "AET", "CWD", "RAR"), each = 12), rep(1:12, 5))
