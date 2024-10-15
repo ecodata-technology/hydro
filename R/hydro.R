@@ -44,7 +44,8 @@ monthly_S0 <- function(month, latitude){
       jdays <- which(j==month)
 
       # average ETSR across all days of the month
-      mean(ETSR(latitude, jdays))
+      mean_etsr <- mean(ETSR(latitude, jdays))
+      return(mean_etsr)
 }
 
 
@@ -84,11 +85,11 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
       # this note is a placeholder for that calculation if we decide to use it]
 
       logger::log_info("Starting water balance calculations.")
-      logger::log_info("If necessary, projecting latitude into WGS84.")
+      logger::log_info("Starting solar radiation.")
+
       # get S0 values for all 12 months
       S0 <- sapply(1:12, monthly_S0, latitude=latitude)
 
-      logger::log_info("Starting solar radiation.")
       # convert S0 from list of rasters to raster stack
       S0 <- rast(S0)
 
@@ -123,7 +124,7 @@ water_balance <- function(latitude, ppt, tmean, tmax, tmin, annual = TRUE){
 #' Create a latitude raster
 #' @export
 #'
-#' @param template a raster layer
+#' @param template a SpatRaster layer
 #' @param already_latlong leave as F unless rasters are already in lat-long projection
 #' @return A raster layer with values representing degrees latitude
 latitude <- function(template, already_latlong=FALSE){
@@ -131,6 +132,7 @@ latitude <- function(template, already_latlong=FALSE){
       requireNamespace("terra")
       requireNamespace("sf")
 
+      logger::log_info("If necessary, projecting latitude into WGS84.")
       template <- template * 1 # force into RAM
 
       if(!already_latlong) {
@@ -163,9 +165,9 @@ latitude <- function(template, already_latlong=FALSE){
 #' @export
 #'
 #' @param rasters stack of 48 rasters in this order: ppt1-12, tmean1-12,
-#'   tmax1-12, tmin1-12
-#' @param temp_scalar multiplier to convert input temperatures to deg C
-#' @param ppt_scalar multiplier to convert input precipitation to mm
+#'   tmax1-12, tmin1-12, expecting SpatRaster layer
+#' @param temp_scalar optional, multiplier to convert input temperatures to deg C
+#' @param ppt_scalar optional, multiplier to convert input precipitation to mm
 #' @param ncores number of computing cores to use for parallel processing
 #' @param already_latlong leave as F unless rasters are already in lat-long
 #'   projection
