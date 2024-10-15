@@ -44,7 +44,7 @@ monthly_S0 <- function(month, latitude){
       jdays <- which(j==month)
 
       # average ETSR across all days of the month
-      mean_etsr <- mean(ETSR(latitude, jdays))
+      mean_etsr <- terra::mean(ETSR(latitude, jdays))
       return(mean_etsr)
 }
 
