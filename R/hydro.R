@@ -199,9 +199,8 @@ hydro <- function(rasters, temp_scalar=1, ppt_scalar=1, ncores=1, already_latlon
                                                                          tmax=x[[25:36]] * temp_scalar,
                                                                          tmin=x[[37:48]] * temp_scalar,
                                                                          annual = annual)
-      # wrap in another terra::rast to return a multi-layer raster instead of list of rasters
       # this matches output format of previous raster implementation
-      wb <- rast(w(rasters))
+      wb <- w(rasters)
 
        # remove parallelization (for now). In many cases, single-threaded terra is already faster than parallelized raster.
 #
